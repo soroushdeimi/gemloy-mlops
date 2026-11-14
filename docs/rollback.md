@@ -1,5 +1,7 @@
 # Rollback
 
+The default engine is llama.cpp using read-only existing weights. For engine replacement use only [engines.md](engines.md); for the WSL test, restore the existing service with [test-env-wsl.md](test-env-wsl.md).
+
 ## GitOps default: revert desired state
 
 Revert the image-bump commit (or the offending chart/config commit) in the repository and allow Argo to reconcile. Example operator workflow:
@@ -32,8 +34,8 @@ For installations made with Helm rather than Argo:
 ```sh
 helm history summarizer -n platform
 helm rollback summarizer REVISION -n platform --wait
-helm history vllm -n platform
-helm rollback vllm REVISION -n platform --wait --timeout 35m
+helm history llamacpp -n platform
+helm rollback llamacpp REVISION -n platform --wait --timeout 35m
 ```
 
 The timeout follows the proposed startup budget in reproduce.md. Recreate means model rollback has downtime. Preserve weights and review cache revision compatibility separately. Helm rollback does not reverse CRD schema upgrades or restore local disks. For plain manifests, apply the earlier reviewed kustomize revision and wait for rollout. Do not mix native Helm rollback with Argo-managed resources.

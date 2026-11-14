@@ -12,7 +12,7 @@ streams += [
     subprocess.check_output(
         ["helm", "template", name, str(ROOT / "deploy/charts" / name)], text=True
     )
-    for name in ["summarizer", "vllm"]
+    for name in ["summarizer", "vllm", "llamacpp"]
 ]
 streams += [
     subprocess.check_output(["kustomize", "build", str(ROOT / "deploy/manifests/app")], text=True)
@@ -26,5 +26,5 @@ with tempfile.TemporaryDirectory(dir=ROOT / ".tools") as tmp:
                 path = pathlib.Path(tmp) / f"rules-{count}.yaml"
                 path.write_text(yaml.safe_dump(obj["spec"]))
                 subprocess.run(["promtool", "check", "rules", str(path)], check=True)
-assert count >= 3, "Expected platform, chart and plain app rules"
+assert count >= 4, "Expected platform, chart and plain app rules"
 print(f"Validated {count} rule resources")

@@ -6,5 +6,6 @@ metadata:
 spec:
   selector:
     matchLabels: {app: {{ .Release.Name }}}
+  targetLabels: [engine]
   endpoints: [{port: http, path: /metrics, interval: 15s}]
 {{- end }}

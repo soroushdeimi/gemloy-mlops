@@ -31,7 +31,9 @@ spec:
         summary: GPU XID fault reported
         runbook_url: docs/runbook.md
     - alert: ModelServerDown
-      expr: up{namespace="platform",service="vllm"} == 0 or absent(up{namespace="platform",service="vllm"})
+      expr: up{namespace="platform",service="model",engine="vllm"} == 0 or (absent(up{namespace="platform",service="model",engine="vllm"})
+        and on() (kube_deployment_spec_replicas{namespace="platform",deployment="vllm"}
+        > 0))
       for: 2m
       labels:
         severity: critical

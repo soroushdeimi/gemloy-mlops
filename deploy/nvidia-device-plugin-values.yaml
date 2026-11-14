@@ -1,0 +1,16 @@
+# Chart nvidia-device-plugin version 0.17.1; experimental WSL allocation path.
+runtimeClassName: nvidia
+migStrategy: none
+failOnInitError: true
+deviceDiscoveryStrategy: nvml
+deviceListStrategy: envvar
+nvidiaDriverRoot: /
+nodeSelector:
+  node-role.gemloy/gpu: "true"
+affinity: {}
+tolerations:
+  - {key: nvidia.com/gpu, operator: Equal, value: present, effect: NoSchedule}
+gfd:
+  enabled: false
+nfd:
+  enabled: false

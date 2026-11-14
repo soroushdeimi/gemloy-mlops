@@ -1,0 +1,26 @@
+{{- if .Values.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: llamacpp-alerts
+spec:
+  groups:
+  - name: gemloy.llamacpp
+    rules:
+    - alert: LlamaServerDown
+      expr: up{namespace="platform",service="model",engine="llamacpp"} == 0 or (absent(up{namespace="platform",service="model",engine="llamacpp"})
+        and on() (kube_deployment_spec_replicas{namespace="platform",deployment="llamacpp"}
+        > 0))
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: Local GGUF model endpoint unavailable
+    - alert: LlamaQueueHigh
+      expr: llamacpp:requests_deferred > 2
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: More than one model batch is deferred
+{{- end }}

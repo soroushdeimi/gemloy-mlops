@@ -1,5 +1,7 @@
 # Scaling proposal
 
+Default engine is llama.cpp. Use `llamacpp:requests_deferred` as its queue signal; the existing KEDA fragment below is for the retained vLLM alternative. Neither scaler is deployed. The single-node WSL profile adds app tolerations but creates no additional GPU capacity.
+
 App HPA is included and enabled in GitOps values; chart defaults keep it optional. The initial range is one to three replicas (baseline plus two spare CPU replicas), targeting 70% of requested CPU so 30% remains as an initial headroom policy. A 300-second scale-down stabilization window equals five minutes. These are proposed settings, not measured capacity. HPA helps parsing, HTTP connection handling and availability but cannot increase model throughput. CPU is imperfect for an async proxy: later add in-flight or request-rate metrics based on measured app saturation.
 
 The current llama.cpp configuration has two active streams. Begin the future test environment at concurrency two, then measure vLLM independently; see loadtest/README.md. More app replicas must not be interpreted as more model capacity. Add ingress admission limits and queue deadlines when exposing the service.

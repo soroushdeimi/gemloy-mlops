@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
-URL = "http://vllm:8000/v1/chat/completions"
+URL = "http://model:8000/v1/chat/completions"
 OK = {
     "choices": [{"message": {"content": "A short summary."}}],
     "usage": {"prompt_tokens": 10, "completion_tokens": 4},
@@ -19,7 +19,7 @@ OK = {
 
 @pytest.fixture
 def client(monkeypatch):
-    monkeypatch.setenv("MODEL_URL", "http://vllm:8000")
+    monkeypatch.setenv("MODEL_URL", "http://model:8000")
     monkeypatch.setattr("app.main.asyncio.sleep", AsyncMock())
     with TestClient(app) as client:
         yield client
@@ -79,7 +79,7 @@ def test_4xx_no_retry(client):
     [
         {},
         {"text": " "},
-        {"text": "x" * 5001},
+        {"text": "x" * 450001},
         {"text": "x", "max_tokens": 0},
         {"text": "x", "max_tokens": "16"},
     ],
@@ -90,14 +90,14 @@ def test_invalid_input(client, body):
 
 @respx.mock
 def test_readiness_down(client):
-    respx.get("http://vllm:8000/health").mock(return_value=httpx.Response(503))
+    respx.get("http://model:8000/health").mock(return_value=httpx.Response(503))
     assert client.get("/readyz").status_code == 503
     assert client.get("/healthz").status_code == 200
 
 
 @respx.mock
 def test_readiness_up(client):
-    respx.get("http://vllm:8000/health").mock(return_value=httpx.Response(200))
+    respx.get("http://model:8000/health").mock(return_value=httpx.Response(200))
     assert client.get("/readyz").status_code == 200
 
 
@@ -146,8 +146,8 @@ def test_other_upstream_400_stays_gateway_error(client):
 @respx.mock
 def test_default_input_boundary(client):
     route = respx.post(URL).mock(return_value=httpx.Response(200, json=OK))
-    assert client.post("/summarize", json={"text": "x" * 5000}).status_code == 200
-    assert client.post("/summarize", json={"text": "x" * 5001}).status_code == 422
+    assert client.post("/summarize", json={"text": "x" * 450000}).status_code == 200
+    assert client.post("/summarize", json={"text": "x" * 450001}).status_code == 422
     assert route.call_count == 1
 
 

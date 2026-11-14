@@ -1,0 +1,42 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-models
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Release.Name }}-weights
+  annotations: {helm.sh/resource-policy: keep, argocd.argoproj.io/sync-options: "Prune=false,Delete=false"}
+spec:
+  capacity: {storage: {{ .Values.model.sizeBytes | quote }}}
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-models
+  hostPath:
+    path: {{ .Values.model.hostPath | quote }}
+    type: Directory
+  claimRef:
+    name: {{ .Release.Name }}-weights
+    namespace: {{ .Release.Namespace }}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [{{ .Values.nodeName | quote }}]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-weights
+  annotations: {helm.sh/resource-policy: keep, argocd.argoproj.io/sync-options: "Prune=false,Delete=false"}
+spec:
+  accessModes: [ReadOnlyMany]
+  storageClassName: local-models
+  volumeName: {{ .Release.Name }}-weights
+  resources:
+    requests: {storage: {{ .Values.model.sizeBytes | quote }}}

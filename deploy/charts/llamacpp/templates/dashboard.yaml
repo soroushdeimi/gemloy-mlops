@@ -1,0 +1,10 @@
+{{- if .Values.dashboard.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-dashboard
+  labels: {grafana_dashboard: "1"}
+data:
+  llamacpp.json: |
+{{ .Files.Get "files/llamacpp.json" | indent 4 }}
+{{- end }}

@@ -1,8 +1,8 @@
 # Explicit-target load test
 
-Run only after deployment to an approved test environment. The URL and target are mandatory; no load test has been run against a real model, current host, public endpoint or cluster during implementation. Tests use local fixtures and mocked transports.
+Run only after deployment to an approved test environment. The URL and target are mandatory; no load test has been run against a real model, existing serving deployment, public endpoint or cluster during implementation. Tests use local fixtures and mocked transports.
 
-Direct vLLM streaming sweep:
+Direct model streaming sweep (default llama.cpp; same endpoint for the vLLM alternative):
 
 ```sh
 .tools/venv/bin/python loadtest/run.py --target model --url http://VLLM:8000 \

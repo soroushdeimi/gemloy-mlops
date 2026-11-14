@@ -1,52 +1,37 @@
 # Reproduce the platform
 
-All cluster commands below are for the operator's future test environment. No live deployment was performed. Tool versions are reproducibility selections, not measured capacities: Helm 3.17.3, kubeconform 0.6.7, kustomize 5.6.0, promtool 3.2.1 and actionlint 1.7.7. `scripts/install-tools.sh` installs tools under ignored `.tools/`; Python dependencies are pinned. Binary downloads use HTTPS release URLs; digest verification is an additional supply-chain improvement listed in limitations.
+All cluster commands are for the operator's authorized test environment; no deployment was performed during implementation. The default is llama.cpp with the existing GGUF inside a **new** WSL2 Ubuntu 24.04 distro. Follow [test-env-wsl.md](test-env-wsl.md) for the exact snapshot, stop, prepare, staged deployment, verification and restore sequence. No weight download is needed or authorized by that test sequence.
 
-1. Run the README local gates. Review the app Dockerfile and build the image for `linux/amd64` before publishing to the chosen GHCR repository. The image runs as an unprivileged user. No publishing was executed here.
-2. Complete [GPU node preparation](gpu-node-join.md) and its CUDA test. Keep vLLM stopped while the test owns the GPU.
-3. Configure GitOps identity: replace `https://github.com/EXAMPLE/gemloy-mlops.git` in all `gitops/` Applications with the operator's repository URL. Replace `ghcr.io/EXAMPLE/gemloy-mlops` in `gitops/values/summarizer.yaml` and the chart/plain image example with the built image path. Values in CI derive the actual lower-case repository name. Review Argo repository credentials through your secret-management process for private repositories. No remotes or credentials have been created by this work.
-4. Install Argo CD using the site's approved installation and configure its repository access. Bootstrap is intentionally manual. Apply `gitops/root.yaml` to the test cluster. Root reconciliation creates monitoring, sealed-secrets, GPU Operator, observability, vLLM and summarizer children. Automated child sync and self-heal are enabled. Sync waves express order but are not a readiness dependency across Applications: explicitly wait for monitoring CRDs and GPU Operator health before syncing observability and model children. Disable auto-sync during initial commissioning if necessary.
-5. Optional HF token: fetch the Sealed Secrets public certificate for this cluster, then seal a locally supplied token. The following reads it without embedding it in shell history; do not enable shell tracing:
-
-   ```sh
-   read -rs HF_TOKEN
-   export HF_TOKEN
-   python3 - <<'PY' | kubeseal --controller-name sealed-secrets --controller-namespace kube-system --format yaml > /tmp/hf-token.sealed.yaml
-   import base64, json, os
-   print(json.dumps({"apiVersion":"v1", "kind":"Secret", "metadata":{"name":"hf-token", "namespace":"platform"}, "data":{"token":base64.b64encode(os.environ["HF_TOKEN"].encode()).decode()}}))
-   PY
-   unset HF_TOKEN
-   ```
-
-   Review only the ciphertext output, then place it in a separately configured GitOps secrets path or apply it to the test namespace. `gitops/secrets/hf-token.example.yaml` is intentionally outside the synced child directory and is not valid ciphertext. Never sync the example. Back up the controller sealing keys securely outside Git; ciphertext is bound to name, namespace and controller keys.
-6. Confirm the cache PVC binds on the GPU node. The init container downloads the pinned revision only when its successful-download marker is missing. A failed download resumes on retry. Main serving uses the local directory with hub access disabled. Wait for startup, then inspect model logs for actual memory and KV token capacity before testing `/health` and completion behavior.
-7. Check all three monitors as active Prometheus targets. Grafana dashboard UID for the default Prometheus datasource is `prometheus`; adjust dashboard datasource UIDs if the site's installation differs. Take real screenshots using [monitoring](monitoring.md).
-8. Use [runbook](runbook.md) for functional validation and [load test](../loadtest/README.md) for an explicitly approved test endpoint. Evaluate latency, queue and memory before enabling traffic.
-
-## Manual Helm alternative
-
-Use this instead of Argo ownership, never concurrently for the same resources:
+Tool versions are reproducibility selections: Helm 3.17.3, kubeconform 0.6.7, kustomize 5.6.0, promtool 3.2.1 and actionlint 1.7.7. `make tools` locates Python 3.12 and installs tooling inside ignored `.tools/`; the Makefile uses explicit tool paths. Local checks require no cluster:
 
 ```sh
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo add nvidia https://helm.ngc.nvidia.com/nvidia
-helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
-helm repo update
-helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  --version 69.8.2 -n monitoring --create-namespace -f deploy/monitoring-values.yaml --wait
-helm upgrade --install sealed-secrets sealed-secrets/sealed-secrets --version 2.17.2 -n kube-system
-helm upgrade --install gpu-operator nvidia/gpu-operator --version v25.3.0 \
-  -n gpu-operator --create-namespace -f deploy/gpu-operator-values.yaml --wait
-kubectl apply -k monitoring -n monitoring
-helm upgrade --install vllm deploy/charts/vllm -n platform --create-namespace --timeout 35m
-helm upgrade --install summarizer deploy/charts/summarizer -n platform \
-  -f gitops/values/summarizer.yaml --wait
+make tools test lint-k8s lint-rules lint-dashboards
+.tools/bin/actionlint .github/workflows/ci.yml
 ```
 
-The model Helm timeout is a proposed startup allowance plus five minutes (30 + 5 = 35 minutes); initialization download time is variable and may require more. The plain alternative is `kubectl apply -k deploy/manifests/app`; remove the Helm app release first and supply its image tag through a kustomize image override. Plain manifests include the app monitor, alerts and dashboard; their base is kept equivalent to default chart rendering.
+## Default staged WSL smoke test
 
-Chart versions in GitOps pin inputs. Driver and toolkit patches follow the installed package repositories; record them at commissioning. Upgrades require checking chart support matrices and CRD changes. CI validates local resources without installing upstream charts or running inference.
+Use the full steps in test-env-wsl.md. The deployment order is standalone NVIDIA device plugin, CUDA verification Job (delete it afterward), monitoring with the WSL toleration overlay, llama.cpp chart, then summarizer. Use the existing file mounted at `/mnt/d/gemma/bench/models`; byte size is 16,947,541,728. Set `gitops/values/llamacpp.yaml` node name only if the new test-node identity differs from the preparation script. Inspect GPU startup logs and health before any completion/load test.
+
+The WSL smoke procedure uses Helm releases for explicit staging. It does not concurrently apply Argo Applications to the same resources. CPU services receive the WSL profile tolerations because there is only one tainted node. GPU Operator and DCGM are not part of that test path. Empty GPU panels are expected until supported telemetry is demonstrated.
+
+## GitOps deployment path
+
+1. Replace example repository URLs in `gitops/` with the actual repository URL, and confirm `gitops/values/summarizer.yaml` points to an accessible built image. Do not reset existing values or use a floating tag. Configure private repository/registry access through the site's secret-management process.
+2. Prepare the selected node topology. Default active infrastructure is the experimental standalone device plugin on WSL2. Native Ubuntu remains documented in gpu-node-join.md. For infrastructure or engine alternatives use **only** [engines.md](engines.md); do not add a second model Application.
+3. Bootstrap Argo CD using the site's approved installation. For the single-node WSL cluster apply `deploy/argocd-wsl-values.yaml` to its Helm installation so all components tolerate the GPU taint. Do not publish Argo/Grafana publicly during the test.
+4. Apply `gitops/root.yaml`. Its nonrecursive `gitops/apps` source includes monitoring, sealed-secrets, standalone device plugin, observability, **one** model Application selecting llama.cpp, and summarizer. The alternative vLLM/GPU Operator Applications live outside that source. Monitor the initial sync carefully: waves are not cross-Application readiness dependencies. Keep the model child paused until the GPU Job has passed and released its allocation; wait for monitoring CRDs before custom monitors/rules. Child auto-sync/self-heal settings can be paused during commissioning, with parent reconciliation paused to preserve that pause.
+5. Confirm the bound read-only PV/PVC, file-check init output, model `/health`, app readiness and a short completion. Verify only one model Deployment and one model Service. See test-env-wsl.md for local port-forwards and explicit-target load testing. Check the actual ServiceMonitor label/port selectors and dashboard datasource UID `prometheus`.
+6. Capture real screenshots after traffic. App and llama.cpp targets should work if commissioning succeeds; DCGM on WSL is not assumed. Keep the vLLM dashboard/rules as inactive alternative resources; the down alert checks whether the corresponding Deployment is desired.
+
+Sealed Secrets controller is included, with WSL tolerations. The example in `gitops/secrets` is deliberately outside synced paths and is not valid ciphertext. Default GGUF serving uses no HF token. For a separately authorized vLLM cache workflow, seal any required token with this cluster's certificate and name/namespace binding; never write plaintext credentials to Git. Back up controller keys outside Git. No real secret was created during this work.
+
+## Native alternative and rollback
+
+The native topology uses the GPU Operator values, preinstalled driver/toolkit and separate CPU control plane from gpu-node-join.md. The engine choice remains independent; a native test of the existing GGUF needs a pre-existing read-only path and matching PV node affinity. vLLM retains its checkpoint revision, cache initialization and memory budget as an alternative, not an active second GPU consumer. Its weight fetch requires separate authorization; the WSL smoke path never fetches weights.
+
+Rollback details are in rollback.md, with engine changes centralized in engines.md. Existing GGUF files are never altered by chart initialization or release rollback. HostPath PV/PVC objects are retained on uninstall; explicitly review their lifecycle before another claim is bound. Helm does not restore disk contents or reverse CRD migrations.
 
 ## Pipeline behavior
 
-Pull requests validate only. Main pushes validate, build and publish a full git-SHA image; semver tag pushes additionally publish the version without its `v` prefix. The dependent bump job updates the GitOps app image on main only after a successful publish and commits it with a skip marker. Repository permissions must allow the workflow bot to push main; protected-branch installations should use a reviewed change workflow instead. The built commit and desired-state commit differ intentionally. GitOps values use the immutable SHA tag; no floating image tag is promoted.
+Pull requests validate only. Main pushes validate all three local charts, app/load-test tests, rules and JSON, then build/publish the app image with its git SHA. Semver tag events also publish version tags. The dependent main-branch promotion job changes only the app image repository/tag, preserving context/tolerations and other values. Bot permissions and protected-branch policy remain operator setup. No publish, commit, push, remote creation or cluster reconciliation was executed by this work.

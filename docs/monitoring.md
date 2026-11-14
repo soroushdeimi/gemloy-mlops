@@ -2,7 +2,32 @@
 
 Prometheus discovers ServiceMonitors across namespaces and selects all rules. App and model Services expose a named `http` port; the DCGM monitor selects `app=nvidia-dcgm-exporter` in `gpu-operator` and port `gpu-metrics`. Confirm these labels and port against the installed Operator's Service during commissioning. GPU Operator's own monitor is disabled to prevent duplicate scraping. ConfigMaps carry `grafana_dashboard: "1"`; the stack sidecar searches all namespaces.
 
-## vLLM metric contract
+## Default llama.cpp metric contract
+
+The [b12282 server-task source](https://github.com/ggml-org/llama.cpp/blob/b12282/tools/server/server-task.cpp) defines these exported names used by the new dashboard:
+
+| Metric | Meaning |
+|---|---|
+| `llamacpp:prompt_tokens_total` | Uncached prompt tokens |
+| `llamacpp:prompt_tokens_cached_total` | Reused prompt tokens |
+| `llamacpp:prompt_seconds_total` | Prompt processing time counter |
+| `llamacpp:tokens_predicted_total` | Output token counter |
+| `llamacpp:tokens_predicted_seconds_total` | Decode time counter |
+| `llamacpp:prompt_tokens_seconds` | Prompt throughput since scrape |
+| `llamacpp:predicted_tokens_seconds` | Decode throughput since scrape |
+| `llamacpp:requests_processing` | Active requests |
+| `llamacpp:requests_deferred` | Deferred queue |
+| `llamacpp:n_tokens_max` | Lifetime sequence-length high-water mark |
+| `llamacpp:n_decode_total` | Decode-call counter |
+| `llamacpp:n_busy_slots_per_decode` | Busy-slot average |
+
+Speculative counters also exist but are not used because no draft model is configured. This pinned build does **not** expose KV-cache occupancy or usable-context fraction as a Prometheus gauge; no llama.cpp KV-percentage alert is fabricated. `n_tokens_max` is a historical high-water counter, not current KV use. Native TTFT/e2e/token-latency histograms are also absent: use the streaming load test for TTFT and the app histogram for end-to-end latency.
+
+The llama.cpp chart provisions its own model dashboard and rules. Deferred queue > 2 for five minutes exceeds one configured batch; server down for two minutes equals eight scrape intervals. ServiceMonitor copies the Service engine label onto targets. Down alerts are conditioned on the corresponding Deployment being desired, so the retained alternative rules do not page for an inactive engine. The static vLLM dashboard remains available with no data while inactive.
+
+For the WSL profile, GPU Operator is disabled and DCGM telemetry is likely unavailable. Leave missing GPU panels visibly empty and record the gap; a missing series is not a healthy zero. Native GPU Operator and its DCGM monitor remain defined for the alternative native topology.
+
+## Alternative vLLM metric contract
 
 Names checked against the [v0.25.0 metric definitions](https://github.com/vllm-project/vllm/blob/v0.25.0/vllm/v1/metrics/loggers.py). These use `model_name` and `engine` labels. Counters exported by the Python client acquire `_total`; histogram series acquire `_bucket`, `_sum` and `_count`.
 

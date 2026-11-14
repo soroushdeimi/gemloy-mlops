@@ -1,0 +1,25 @@
+grafana:
+  tolerations:
+  - &id001
+    key: nvidia.com/gpu
+    operator: Equal
+    value: present
+    effect: NoSchedule
+prometheus:
+  prometheusSpec:
+    tolerations:
+    - *id001
+alertmanager:
+  alertmanagerSpec:
+    tolerations:
+    - *id001
+prometheusOperator:
+  tolerations:
+  - *id001
+  admissionWebhooks:
+    patch:
+      tolerations:
+      - *id001
+kube-state-metrics:
+  tolerations:
+  - *id001

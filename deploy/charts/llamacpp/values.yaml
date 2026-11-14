@@ -1,0 +1,18 @@
+image: ghcr.io/ggml-org/llama.cpp:server-cuda-b12282
+nodeName: gpu-test
+model:
+  hostPath: /mnt/d/gemma/bench/models
+  file: gemma-4-26B-A4B-it-UD-Q4_K_M.gguf
+  sizeBytes: "16947541728"
+  contextSize: 262144
+  parallel: 2
+  alias: gemma4-summary
+resources:
+  requests: {cpu: "2", memory: 8Gi, nvidia.com/gpu: 1}
+  limits: {cpu: "4", memory: 16Gi, nvidia.com/gpu: 1}
+serviceMonitor:
+  enabled: true
+prometheusRule:
+  enabled: true
+dashboard:
+  enabled: true

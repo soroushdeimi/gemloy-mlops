@@ -3,15 +3,15 @@
 ```mermaid
 flowchart LR
   Client --> App[Summarizer FastAPI]
-  App -->|chat completions| Model[vLLM: Gemma 4 compressed-tensors]
-  subgraph NativeUbuntuGPUAgent
+  App -->|chat completions| Model[Service model: llama.cpp GGUF]
+  subgraph WSLTestNode
     Model --> GPU[RTX 3090]
-    Cache[(local-path PVC)] --> Model
-    Init[Weight init container] --> Cache
-    Device[GPU Operator device plugin and GFD] --> GPU
-    DCGM[DCGM exporter] --> GPU
+    Cache[(read-only hostPath PV/PVC)] --> Model
+    Init[File and size check] --> Cache
+    Device[Standalone device plugin: experimental] --> GPU
+    DCGM[DCGM: likely unavailable on WSL] --> GPU
   end
-  subgraph ControlPlane
+  subgraph ControlPlane[Control plane services: same test node]
     K3s[k3s API and scheduler]
     Argo[Argo CD]
     Prom[Prometheus]
@@ -26,8 +26,8 @@ flowchart LR
   Grafana --> Prom
 ```
 
-One control plane plus one native Ubuntu GPU agent is the requested topology. GPU workloads require both GPU labels, the GPU taint toleration, the `nvidia` RuntimeClass, and an exclusive GPU resource. CPU services have no GPU toleration and land on the control plane. System DaemonSets may tolerate the taint. This isolates user workloads but is not a security boundary.
+The default test is one k3s server node inside a new WSL2 distro. The native alternative remains a separate control plane plus GPU agent. GPU workloads require both GPU labels, the GPU taint toleration, the `nvidia` RuntimeClass, and an exclusive GPU resource. The WSL profile deliberately adds GPU-taint tolerations to CPU services because they share the only node. Native GPU isolation uses the separate control plane instead. System DaemonSets may tolerate the taint. This isolates user workloads but is not a security boundary.
 
-The service calls `/v1/chat/completions`; readiness checks `/health`, while liveness checks only its own process. A failed model therefore removes app readiness without repeatedly restarting a healthy app. vLLM readiness and liveness both use `/health`; its startup probe gates them during load. A persistent HF cache survives model pod replacement. Recreate avoids a rollout deadlock on the sole GPU.
+The service calls `/v1/chat/completions`; readiness checks `/health`, while liveness checks only its own process. A failed model therefore removes app readiness without repeatedly restarting a healthy app. Model readiness and liveness both use `/health`; its startup probe gates them during load. A retained read-only PV/PVC points at the existing GGUF; initialization verifies its presence and byte size. The vLLM alternative retains its HF cache chart. Recreate avoids a rollout deadlock on the sole GPU.
 
 Argo CD reconciles desired state from Git. Monitoring CRDs precede custom monitors and rules. Grafana discovers dashboard ConfigMaps across namespaces. Sealed Secrets decrypts only cluster-bound ciphertext. ClusterIP services deliberately have no public ingress: authentication, TLS and exposure policy must be selected before any public service is added.

@@ -9,11 +9,11 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-MODEL_CONTEXT_TOKENS = int(os.getenv("MODEL_CONTEXT_TOKENS", "2048"))
+MODEL_CONTEXT_TOKENS = int(os.getenv("MODEL_CONTEXT_TOKENS", "131072"))
 MAX_OUTPUT_TOKENS = 512
 TEMPLATE_ALLOWANCE_TOKENS = 64
 MAX_INPUT_CHARS = min(
-    int(os.getenv("MAX_INPUT_CHARS", "5000")),
+    int(os.getenv("MAX_INPUT_CHARS", "450000")),
     int((MODEL_CONTEXT_TOKENS - MAX_OUTPUT_TOKENS - TEMPLATE_ALLOWANCE_TOKENS) * 3.5),
 )
 if MAX_INPUT_CHARS < 1:
@@ -33,7 +33,7 @@ TOKENS = Counter("summarizer_tokens_total", "Successful completion token usage",
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with httpx.AsyncClient(
-        base_url=os.getenv("MODEL_URL", "http://vllm:8000"),
+        base_url=os.getenv("MODEL_URL", "http://model:8000"),
         timeout=httpx.Timeout(120, connect=5, pool=5),
         limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
         follow_redirects=False,
@@ -121,6 +121,7 @@ async def complete(client: httpx.AsyncClient, payload: dict) -> dict:
                     phrase in message
                     for phrase in (
                         "context length",
+                        "context size",
                         "context_length",
                         "context window",
                         "max_model_len",

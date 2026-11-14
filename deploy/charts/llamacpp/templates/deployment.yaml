@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: {{ .Release.Name }}}
+  template:
+    metadata:
+      labels: {app: {{ .Release.Name }}, engine: llamacpp}
+    spec:
+      runtimeClassName: nvidia
+      automountServiceAccountToken: false
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+        node-role.gemloy/gpu: "true"
+      tolerations:
+        - {key: nvidia.com/gpu, operator: Equal, value: present, effect: NoSchedule}
+      initContainers:
+        - name: verify-weights
+          image: python:3.12.10-slim-bookworm
+          command: [python, /check/verify_model.py]
+          args: [{{ printf "/models/%s" .Values.model.file | quote }}, {{ .Values.model.sizeBytes | quote }}]
+          resources:
+            requests: {cpu: 100m, memory: 64Mi}
+            limits: {cpu: "1", memory: 128Mi}
+          volumeMounts:
+            - {name: weights, mountPath: /models, readOnly: true}
+            - {name: check, mountPath: /check, readOnly: true}
+      containers:
+        - name: llamacpp
+          image: {{ .Values.image }}
+          args:
+            - --model
+            - "/models/{{ .Values.model.file }}"
+            - --alias
+            - "{{ .Values.model.alias }}"
+            - --ctx-size
+            - "{{ .Values.model.contextSize }}"
+            - --parallel
+            - "{{ .Values.model.parallel }}"
+            - --n-gpu-layers
+            - "999"
+            - --metrics
+            - --jinja
+            - --reasoning
+            - "on"
+            - --reasoning-effort
+            - "max"
+            - --reasoning-budget
+            - "-1"
+            - --temperature
+            - "0.3"
+            - --repeat-penalty
+            - "1.0"
+            - --presence-penalty
+            - "0.0"
+            - --frequency-penalty
+            - "0.0"
+            - --no-webui
+            - --host
+            - "0.0.0.0"
+            - --port
+            - "8000"
+          ports: [{name: http, containerPort: 8000}]
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 180
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          volumeMounts:
+            - {name: weights, mountPath: /models, readOnly: true}
+            - {name: shm, mountPath: /dev/shm}
+      volumes:
+        - name: weights
+          persistentVolumeClaim: {claimName: {{ .Release.Name }}-weights, readOnly: true}
+        - name: check
+          configMap: {name: {{ .Release.Name }}-check}
+        - name: shm
+          emptyDir: {medium: Memory, sizeLimit: 2Gi}

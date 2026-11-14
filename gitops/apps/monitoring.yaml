@@ -15,6 +15,7 @@ spec:
       releaseName: kube-prometheus-stack
       valueFiles:
       - $values/deploy/monitoring-values.yaml
+      - $values/deploy/monitoring-wsl-values.yaml
   - repoURL: https://github.com/EXAMPLE/gemloy-mlops.git
     targetRevision: main
     ref: values

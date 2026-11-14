@@ -1,4 +1,6 @@
-# Join the GPU node
+# Join the native GPU node
+
+For the separate WSL2 test environment use [test-env-wsl.md](test-env-wsl.md). This native procedure remains the alternative production topology.
 
 Operator-run procedure for native Ubuntu 22.04 or 24.04, bare metal or dual boot. These OS versions and the single-agent topology are assignment choices. No script here has been executed on hardware. Review outbound repository access, OS backups, Secure Boot signing, DNS, clock synchronization, swap policy and private connectivity before starting. Keep join tokens outside Git.
 
@@ -44,7 +46,7 @@ Operator-run procedure for native Ubuntu 22.04 or 24.04, bare metal or dual boot
 
    Only add this when the base does not already define `nvidia`; duplicate TOML tables fail startup. Restart the agent and inspect its journal. For older containerd configurations, the plugin prefix differs; this template is deliberately scoped to the pinned k3s series. See [k3s containerd and alternative runtimes](https://docs.k3s.io/advanced).
 
-6. Install monitoring CRDs first, then GPU Operator with [values](../deploy/gpu-operator-values.yaml), using [reproduce](reproduce.md). Driver/toolkit are disabled; device plugin, DCGM exporter and GFD are enabled. Operator DaemonSets and NFD tolerate the GPU taint. The operator namespace may need privileged Pod Security admission; apply that only to its namespace. Verify discovery and allocation:
+6. Select the native infrastructure profile using [engines.md](engines.md) so the standalone plugin is not also active. Install monitoring CRDs first, then GPU Operator with [values](../deploy/gpu-operator-values.yaml), using [reproduce](reproduce.md). Driver/toolkit are disabled; device plugin, DCGM exporter and GFD are enabled. Operator DaemonSets and NFD tolerate the GPU taint. The operator namespace may need privileged Pod Security admission; apply that only to its namespace. Verify discovery and allocation:
 
    ```sh
    kubectl get node GPU_NODE --show-labels

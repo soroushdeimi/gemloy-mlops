@@ -1,12 +1,12 @@
 # Runbook
 
-Commands in this document are for the future test cluster, never the current host deployment. Start with `kubectl get pods -n platform -o wide`, pod events, Argo health and Prometheus targets. Do not print token Secrets or request bodies into incident logs.
+Commands in this document are for the future test cluster, never the current host deployment. For the default staged WSL test follow [test-env-wsl.md](test-env-wsl.md), including restoration. Use [engines.md](engines.md) for alternative engine selection. Start with `kubectl get pods -n platform -o wide`, pod events, Argo health and Prometheus targets. Do not print token Secrets or request bodies into incident logs.
 
 | Symptom | Inspect and act |
 |---|---|
 | GPU pod Pending | Describe pod events, labels, taints, RuntimeClass and node allocatable GPUs. The verification Job or an old model pod may own the sole resource. Do not enable GPU sharing to bypass the conflict. |
 | GPU resource absent | Inspect GPU Operator device-plugin/GFD logs, native host `nvidia-smi`, agent runtime config and node driver health. Confirm driver/toolkit ownership remains disabled in Operator. |
-| Init stuck | Inspect init logs, HF repository/revision access, DNS, package-index access and PVC disk space. A marker is created only on success. Do not delete the PVC to fix a transient fetch failure. |
+| Init stuck | Inspect init logs, the existing file path/size and read-only mount for llama.cpp; HF repository/revision access, DNS, package-index access and PVC disk space for the vLLM alternative. A marker is created only on success. Do not delete the PVC to fix a transient fetch failure. |
 | Model OOM at load | Capture allocator budget and cache capacity from startup logs. Compare with the design budget; reduce context as documented before retrying. Eager execution is already enabled. Persistent weight-size failure needs a model-budget review. |
 | Model readiness fails | Inspect `/health`, process logs, probe timings, GPU faults and memory. Startup allowance applies after download, not during init. Repeated liveness restarts can conceal a load or kernel failure. |
 | App returns 502 | Check upstream connection and HTTP failures, model Service endpoints and app upstream-error counters. Exhausted retries or malformed upstream content map here. |
@@ -19,11 +19,11 @@ Commands in this document are for the future test cluster, never the current hos
 ## Commissioning checks
 
 ```sh
-kubectl rollout status deployment/vllm -n platform --timeout=35m
+kubectl rollout status deployment/llamacpp -n platform --timeout=35m
 kubectl rollout status deployment/summarizer -n platform
 kubectl get servicemonitors,prometheusrules -A
 kubectl get endpoints -n platform
-kubectl logs -n platform deployment/vllm -c vllm --tail=100
+kubectl logs -n platform deployment/llamacpp -c llamacpp --tail=100
 ```
 
 Use a port-forward in the authorized test environment to verify app `/healthz`, `/readyz`, `/metrics` and a short `/summarize` request. Compare prompt/completion usage to app token counters; inject a test-only upstream failure and check 502/504 and the upstream-error counter. Verify model metric families and labels against the pinned contract, then take screenshots. Do not expose model or app Services publicly during this check.

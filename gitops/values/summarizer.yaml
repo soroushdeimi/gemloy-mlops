@@ -3,3 +3,10 @@ image:
   tag: eb8f2c0bf75ed740acf5928a926ffa8e3df38d6d
 hpa:
   enabled: true
+maxInputChars: 450000
+modelContextTokens: 131072
+tolerations:
+- key: nvidia.com/gpu
+  operator: Equal
+  value: present
+  effect: NoSchedule
