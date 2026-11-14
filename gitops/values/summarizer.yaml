@@ -1,5 +1,5 @@
 image:
-  repository: ghcr.io/EXAMPLE/gemloy-mlops
-  tag: 0.1.0
+  repository: ghcr.io/soroushdeimi/gemloy-mlops
+  tag: eb8f2c0bf75ed740acf5928a926ffa8e3df38d6d
 hpa:
   enabled: true
