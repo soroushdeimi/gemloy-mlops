@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-dashboard
+  labels:
+    grafana_dashboard: '1'
+data:
+  model.json: "{\n  \"title\": \"Gemloy model\",\n  \"uid\": \"gemloy-model\",\n \
+    \ \"schemaVersion\": 39,\n  \"version\": 1,\n  \"tags\": [\n    \"gemloy\"\n \
+    \ ],\n  \"time\": {\n    \"from\": \"now-1h\",\n    \"to\": \"now\"\n  },\n  \"\
+    refresh\": \"15s\",\n  \"panels\": [\n    {\n      \"id\": 1,\n      \"title\"\
+    : \"Output tokens/s\",\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n\
+    \        \"x\": 0,\n        \"y\": 0,\n        \"w\": 12,\n        \"h\": 8\n\
+    \      },\n      \"datasource\": {\n        \"type\": \"prometheus\",\n      \
+    \  \"uid\": \"prometheus\"\n      },\n      \"targets\": [\n        {\n      \
+    \    \"refId\": \"A\",\n          \"expr\": \"sum(rate(vllm:generation_tokens_total[5m]))\"\
+    ,\n          \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n\
+    \      ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
+    : \"ops\"\n        },\n        \"overrides\": []\n      }\n    },\n    {\n   \
+    \   \"id\": 2,\n      \"title\": \"Prompt tokens/s\",\n      \"type\": \"timeseries\"\
+    ,\n      \"gridPos\": {\n        \"x\": 12,\n        \"y\": 0,\n        \"w\"\
+    : 12,\n        \"h\": 8\n      },\n      \"datasource\": {\n        \"type\":\
+    \ \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"targets\"\
+    : [\n        {\n          \"refId\": \"A\",\n          \"expr\": \"sum(rate(vllm:prompt_tokens_total[5m]))\"\
+    ,\n          \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n\
+    \      ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
+    : \"ops\"\n        },\n        \"overrides\": []\n      }\n    },\n    {\n   \
+    \   \"id\": 3,\n      \"title\": \"Running\",\n      \"type\": \"timeseries\"\
+    ,\n      \"gridPos\": {\n        \"x\": 0,\n        \"y\": 8,\n        \"w\":\
+    \ 12,\n        \"h\": 8\n      },\n      \"datasource\": {\n        \"type\":\
+    \ \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"targets\"\
+    : [\n        {\n          \"refId\": \"A\",\n          \"expr\": \"sum(vllm:num_requests_running)\"\
+    ,\n          \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n\
+    \      ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
+    : \"none\"\n        },\n        \"overrides\": []\n      }\n    },\n    {\n  \
+    \    \"id\": 4,\n      \"title\": \"Waiting\",\n      \"type\": \"timeseries\"\
+    ,\n      \"gridPos\": {\n        \"x\": 12,\n        \"y\": 8,\n        \"w\"\
+    : 12,\n        \"h\": 8\n      },\n      \"datasource\": {\n        \"type\":\
+    \ \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"targets\"\
+    : [\n        {\n          \"refId\": \"A\",\n          \"expr\": \"sum(vllm:num_requests_waiting)\"\
+    ,\n          \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n\
+    \      ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
+    : \"none\"\n        },\n        \"overrides\": []\n      }\n    },\n    {\n  \
+    \    \"id\": 5,\n      \"title\": \"KV cache fraction\",\n      \"type\": \"timeseries\"\
+    ,\n      \"gridPos\": {\n        \"x\": 0,\n        \"y\": 16,\n        \"w\"\
+    : 12,\n        \"h\": 8\n      },\n      \"datasource\": {\n        \"type\":\
+    \ \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"targets\"\
+    : [\n        {\n          \"refId\": \"A\",\n          \"expr\": \"vllm:kv_cache_usage_perc\"\
+    ,\n          \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n\
+    \      ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
+    : \"percentunit\"\n        },\n        \"overrides\": []\n      }\n    },\n  \
+    \  {\n      \"id\": 6,\n      \"title\": \"E2E p95\",\n      \"type\": \"timeseries\"\
+    ,\n      \"gridPos\": {\n        \"x\": 12,\n        \"y\": 16,\n        \"w\"\
+    : 12,\n        \"h\": 8\n      },\n      \"datasource\": {\n        \"type\":\
+    \ \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"targets\"\
+    : [\n        {\n          \"refId\": \"A\",\n          \"expr\": \"histogram_quantile(0.95,\
+    \ sum by (le) (rate(vllm:e2e_request_latency_seconds_bucket[5m])))\",\n      \
+    \    \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n     \
+    \ ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"\
+    s\"\n        },\n        \"overrides\": []\n      }\n    },\n    {\n      \"id\"\
+    : 7,\n      \"title\": \"TTFT p95\",\n      \"type\": \"timeseries\",\n      \"\
+    gridPos\": {\n        \"x\": 0,\n        \"y\": 24,\n        \"w\": 12,\n    \
+    \    \"h\": 8\n      },\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"targets\": [\n        {\n\
+    \          \"refId\": \"A\",\n          \"expr\": \"histogram_quantile(0.95, sum\
+    \ by (le) (rate(vllm:time_to_first_token_seconds_bucket[5m])))\",\n          \"\
+    legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n      ],\n  \
+    \    \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"s\"\n\
+    \        },\n        \"overrides\": []\n      }\n    },\n    {\n      \"id\":\
+    \ 8,\n      \"title\": \"Time per output token p95\",\n      \"type\": \"timeseries\"\
+    ,\n      \"gridPos\": {\n        \"x\": 12,\n        \"y\": 24,\n        \"w\"\
+    : 12,\n        \"h\": 8\n      },\n      \"datasource\": {\n        \"type\":\
+    \ \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"targets\"\
+    : [\n        {\n          \"refId\": \"A\",\n          \"expr\": \"histogram_quantile(0.95,\
+    \ sum by (le) (rate(vllm:request_time_per_output_token_seconds_bucket[5m])))\"\
+    ,\n          \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n\
+    \      ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
+    : \"s\"\n        },\n        \"overrides\": []\n      }\n    }\n  ]\n}\n"

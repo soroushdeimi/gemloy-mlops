@@ -1,0 +1,23 @@
+replicaCount: 1
+image:
+  repository: ghcr.io/gemloy-mlops/summarizer
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+modelUrl: http://vllm:8000
+modelAlias: gemma4-summary
+maxInputChars: 5000
+modelContextTokens: 2048
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {cpu: "1", memory: 256Mi}
+serviceMonitor:
+  enabled: true
+prometheusRule:
+  enabled: true
+dashboard:
+  enabled: true
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPU: 70

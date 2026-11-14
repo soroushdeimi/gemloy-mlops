@@ -1,0 +1,5 @@
+resources:
+- rules.yaml
+- dcgm-servicemonitor.yaml
+- gpu-dashboard.yaml
+- model-dashboard.yaml

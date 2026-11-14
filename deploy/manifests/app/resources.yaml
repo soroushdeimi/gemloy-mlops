@@ -1,0 +1,239 @@
+---
+# Source: summarizer/templates/dashboard.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: summarizer-dashboard
+  labels: {grafana_dashboard: "1"}
+data:
+  app.json: |
+    {
+      "title": "Gemloy app",
+      "uid": "gemloy-app",
+      "schemaVersion": 39,
+      "version": 1,
+      "tags": [
+        "gemloy"
+      ],
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "refresh": "15s",
+      "panels": [
+        {
+          "id": 1,
+          "title": "Requests/s by status",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (status) (rate(summarizer_requests_total{route=\"/summarize\"}[5m]))",
+              "legendFormat": "{{instance}} {{kind}} {{status}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 2,
+          "title": "Latency p95",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(summarizer_request_duration_seconds_bucket{route=\"/summarize\"}[5m])))",
+              "legendFormat": "{{instance}} {{kind}} {{status}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 3,
+          "title": "Upstream errors/s",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (kind) (rate(summarizer_upstream_errors_total[5m]))",
+              "legendFormat": "{{instance}} {{kind}} {{status}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "title": "Tokens/s",
+          "type": "timeseries",
+          "gridPos": {
+            "x": 12,
+            "y": 8,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "sum by (kind) (rate(summarizer_tokens_total[5m]))",
+              "legendFormat": "{{instance}} {{kind}} {{status}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops"
+            },
+            "overrides": []
+          }
+        }
+      ]
+    }
+---
+# Source: summarizer/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: summarizer
+  labels: {app: summarizer}
+spec:
+  selector: {app: summarizer}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+# Source: summarizer/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: summarizer
+  labels: {app: summarizer}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: summarizer}
+  template:
+    metadata:
+      labels: {app: summarizer}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: summarizer
+          image: "ghcr.io/gemloy-mlops/summarizer:0.1.0"
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: MODEL_URL, value: "http://vllm:8000"}
+            - {name: MODEL_ALIAS, value: "gemma4-summary"}
+            - {name: MAX_INPUT_CHARS, value: "5000"}
+            - {name: MODEL_CONTEXT_TOKENS, value: "2048"}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            limits:
+              cpu: "1"
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet: {path: /healthz, port: http}
+            failureThreshold: 30
+            periodSeconds: 2
+---
+# Source: summarizer/templates/rules.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: summarizer-alerts
+spec:
+  groups:
+  - name: gemloy.app
+    rules:
+    - alert: AppErrorRateHigh
+      expr: sum(rate(summarizer_requests_total{route="/summarize",status=~"5.."}[5m]))
+        / clamp_min(sum(rate(summarizer_requests_total{route="/summarize"}[5m])),
+        0.001) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: App server errors exceed the initial error budget
+        runbook_url: docs/runbook.md
+    - alert: AppP95LatencyHigh
+      expr: histogram_quantile(0.95, sum by (le) (rate(summarizer_request_duration_seconds_bucket{route="/summarize"}[5m])))
+        > 30
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: App p95 latency exceeds the initial budget
+        runbook_url: docs/runbook.md
+---
+# Source: summarizer/templates/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: summarizer
+spec:
+  selector:
+    matchLabels: {app: summarizer}
+  endpoints: [{port: http, path: /metrics, interval: 15s}]

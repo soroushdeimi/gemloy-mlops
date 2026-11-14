@@ -1,0 +1,29 @@
+{{- if .Values.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ .Release.Name }}-alerts
+spec:
+  groups:
+  - name: gemloy.app
+    rules:
+    - alert: AppErrorRateHigh
+      expr: sum(rate(summarizer_requests_total{route="/summarize",status=~"5.."}[5m]))
+        / clamp_min(sum(rate(summarizer_requests_total{route="/summarize"}[5m])),
+        0.001) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: App server errors exceed the initial error budget
+        runbook_url: docs/runbook.md
+    - alert: AppP95LatencyHigh
+      expr: histogram_quantile(0.95, sum by (le) (rate(summarizer_request_duration_seconds_bucket{route="/summarize"}[5m])))
+        > 30
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: App p95 latency exceeds the initial budget
+        runbook_url: docs/runbook.md
+{{- end }}

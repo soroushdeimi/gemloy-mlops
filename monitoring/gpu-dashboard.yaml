@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-dashboard
+  labels:
+    grafana_dashboard: '1'
+data:
+  gpu.json: "{\n  \"title\": \"Gemloy gpu\",\n  \"uid\": \"gemloy-gpu\",\n  \"schemaVersion\"\
+    : 39,\n  \"version\": 1,\n  \"tags\": [\n    \"gemloy\"\n  ],\n  \"time\": {\n\
+    \    \"from\": \"now-1h\",\n    \"to\": \"now\"\n  },\n  \"refresh\": \"15s\"\
+    ,\n  \"panels\": [\n    {\n      \"id\": 1,\n      \"title\": \"GPU temperature\
+    \ (C)\",\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"x\"\
+    : 0,\n        \"y\": 0,\n        \"w\": 12,\n        \"h\": 8\n      },\n    \
+    \  \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\
+    \n      },\n      \"targets\": [\n        {\n          \"refId\": \"A\",\n   \
+    \       \"expr\": \"DCGM_FI_DEV_GPU_TEMP\",\n          \"legendFormat\": \"{{instance}}\
+    \ {{kind}} {{status}}\"\n        }\n      ],\n      \"fieldConfig\": {\n     \
+    \   \"defaults\": {\n          \"unit\": \"celsius\"\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"id\": 2,\n      \"title\": \"Framebuffer\
+    \ used (MiB)\",\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n     \
+    \   \"x\": 12,\n        \"y\": 0,\n        \"w\": 12,\n        \"h\": 8\n    \
+    \  },\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"\
+    uid\": \"prometheus\"\n      },\n      \"targets\": [\n        {\n          \"\
+    refId\": \"A\",\n          \"expr\": \"DCGM_FI_DEV_FB_USED\",\n          \"legendFormat\"\
+    : \"{{instance}} {{kind}} {{status}}\"\n        }\n      ],\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"unit\": \"none\"\n        },\n     \
+    \   \"overrides\": []\n      }\n    },\n    {\n      \"id\": 3,\n      \"title\"\
+    : \"GPU utilization (%)\",\n      \"type\": \"timeseries\",\n      \"gridPos\"\
+    : {\n        \"x\": 0,\n        \"y\": 8,\n        \"w\": 12,\n        \"h\":\
+    \ 8\n      },\n      \"datasource\": {\n        \"type\": \"prometheus\",\n  \
+    \      \"uid\": \"prometheus\"\n      },\n      \"targets\": [\n        {\n  \
+    \        \"refId\": \"A\",\n          \"expr\": \"DCGM_FI_DEV_GPU_UTIL\",\n  \
+    \        \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n \
+    \     ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
+    : \"percent\"\n        },\n        \"overrides\": []\n      }\n    },\n    {\n\
+    \      \"id\": 4,\n      \"title\": \"XID error code\",\n      \"type\": \"timeseries\"\
+    ,\n      \"gridPos\": {\n        \"x\": 12,\n        \"y\": 8,\n        \"w\"\
+    : 12,\n        \"h\": 8\n      },\n      \"datasource\": {\n        \"type\":\
+    \ \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"targets\"\
+    : [\n        {\n          \"refId\": \"A\",\n          \"expr\": \"DCGM_FI_DEV_XID_ERRORS\"\
+    ,\n          \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n\
+    \      ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
+    : \"none\"\n        },\n        \"overrides\": []\n      }\n    }\n  ]\n}\n"

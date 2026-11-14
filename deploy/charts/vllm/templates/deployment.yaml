@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: {{ .Release.Name }}}
+  template:
+    metadata:
+      labels: {app: {{ .Release.Name }}}
+    spec:
+      runtimeClassName: nvidia
+      automountServiceAccountToken: false
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+        node-role.gemloy/gpu: "true"
+      tolerations:
+        - {key: nvidia.com/gpu, operator: Equal, value: present, effect: NoSchedule}
+      initContainers:
+        - name: weights
+          image: python:3.12.10-slim-bookworm
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              model_dir="$HF_HOME/models/{{ .Values.model.revision }}"
+              marker="$model_dir/.complete"
+              if [ ! -f "$marker" ]; then
+                pip install --no-cache-dir --target /tmp/hf huggingface-hub==0.34.4
+                export PYTHONPATH=/tmp/hf
+                export PATH=/tmp/hf/bin:$PATH
+                mkdir -p "$model_dir"
+                huggingface-cli download {{ .Values.model.repository | quote }} --revision {{ .Values.model.revision | quote }} --local-dir "$model_dir"
+                touch "$marker"
+              fi
+          env:
+            - {name: HF_HOME, value: /cache}
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef: {name: {{ .Values.hfTokenSecret }}, key: token, optional: true}
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: "1", memory: 2Gi}
+          volumeMounts:
+            - {name: cache, mountPath: /cache}
+      containers:
+        - name: vllm
+          image: {{ .Values.image }}
+          args:
+            - /cache/models/{{ .Values.model.revision }}
+            - --served-model-name={{ .Values.model.servedName }}
+            - --quantization={{ .Values.model.quantization }}
+            - --dtype={{ .Values.model.dtype }}
+            - --gpu-memory-utilization={{ .Values.model.gpuMemoryUtilization }}
+            - --max-model-len={{ .Values.model.maxModelLen }}
+            - --max-num-seqs={{ .Values.model.maxNumSeqs }}
+            - --max-num-batched-tokens={{ .Values.model.maxNumBatchedTokens }}
+            - --kv-cache-dtype={{ .Values.model.kvCacheDtype }}
+            - --language-model-only
+            - --enforce-eager
+            - --host=0.0.0.0
+            - --port=8000
+          env:
+            - {name: HF_HOME, value: /cache}
+            - {name: HF_HUB_OFFLINE, value: "1"}
+          ports: [{name: http, containerPort: 8000}]
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          startupProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 180
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          volumeMounts:
+            - {name: cache, mountPath: /cache}
+            - {name: shm, mountPath: /dev/shm}
+      volumes:
+        - name: cache
+          persistentVolumeClaim: {claimName: {{ .Release.Name }}-cache}
+        - name: shm
+          emptyDir: {medium: Memory, sizeLimit: 2Gi}

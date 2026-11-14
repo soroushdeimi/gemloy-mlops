@@ -1,0 +1,19 @@
+# Limitations and open verification
+
+No deployment, remote login, host API call, weight download, cluster query, image publication, commit or push was performed. All local tests use a mocked upstream. The native GPU node, its runtime and the complete GitOps reconciliation remain unverified.
+
+The requested checkpoint and tagged software implementations were verified through public documentation/source. This does not establish successful kernel execution or acceptable summarization quality on an RTX 3090. The full serialized checkpoint size informs the weight budget, but runtime repacking and allocator overhead can differ. Actual allocator use, cache capacity, cold start, CUDA/driver compatibility and correctness require the real card. Eager serving reduces graph overhead but may sacrifice throughput. CUDA sample image availability, entrypoint execution and NVML tooling also require a real image pull and Job run.
+
+The reference Windows/WSL setup is not a native k3s GPU node. CUDA container support exists in WSL, but GPU Operator and DCGM exporter support on WSL2 is limited; the exact driver, plugin, GFD and exporter behavior on that host is **not verified**. Native Ubuntu is the deployment target. Unsupported/missing DCGM fields must be recorded rather than treated as zero or healthy.
+
+One control plane, one GPU and local-path storage provide no high availability. A node loss interrupts inference and its cache. A model upgrade uses Recreate and causes downtime. App HPA does not remedy GPU saturation. The broader multi-GPU/KEDA and MIG designs are proposals, not installed controllers or tested manifests.
+
+Kubeconform runs with strict core validation and the required ignore-missing-schemas option. Custom resources without schemas are skipped; Helm rendering and promtool syntax checking do not replace CRD admission or live metric validation. Upstream monitoring and GPU Operator charts were pinned but not installed or downloaded during this work. Support-matrix and integration checks remain commissioning tasks.
+
+CI is defined but has not run on the eventual repository. GHCR access, branch protections, workflow-bot write access and Argo credentials require operator setup. Example repository/image paths must be replaced before syncing. The ciphertext example is deliberately invalid and excluded from synced paths. No real sealed token was created; controller-key backup and recovery must be tested. Automated notifications, public TLS/authentication, ingress rate limits and network-policy hardening require site policy before public exposure.
+
+The app limits input by character count, not exact model tokens; a token-heavy prompt may exceed context and return 422 when the upstream 400 identifies context/token length; unrelated upstream client errors remain 502. It returns whole responses rather than streaming. Request bodies and responses are not logged. Retry of a server error can repeat inference work if the upstream completed before failing; retries are bounded but do not provide exactly-once execution. App metrics assume a single worker per pod, as configured in the Docker command.
+
+Tool installation uses pinned release URLs and package versions but has no complete transitive lockfile or release-digest verification. Driver/toolkit package patches follow Ubuntu/NVIDIA repositories. Record exact installed versions and image digests before a reproducibility claim across time. Metrics retention, alert thresholds, resource reservations and probe budgets are initial policies with calculations in the design/monitoring docs; they require measurement.
+
+The local Docker build gate could not run because the Docker daemon socket was unavailable. The build command and error are recorded in the report. An actual image build and container startup remain required in CI or a Docker-enabled test environment. Screenshots are intentionally absent until a deployment supplies real telemetry.

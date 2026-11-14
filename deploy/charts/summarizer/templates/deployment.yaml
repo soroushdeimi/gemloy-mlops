@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels: {app: {{ .Release.Name }}}
+spec:
+  {{- if not .Values.hpa.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels: {app: {{ .Release.Name }}}
+  template:
+    metadata:
+      labels: {app: {{ .Release.Name }}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: summarizer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports: [{name: http, containerPort: 8080}]
+          env:
+            - {name: MODEL_URL, value: {{ .Values.modelUrl | quote }}}
+            - {name: MODEL_ALIAS, value: {{ .Values.modelAlias | quote }}}
+            - {name: MAX_INPUT_CHARS, value: {{ .Values.maxInputChars | quote }}}
+            - {name: MODEL_CONTEXT_TOKENS, value: {{ .Values.modelContextTokens | quote }}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet: {path: /healthz, port: http}
+            failureThreshold: 30
+            periodSeconds: 2

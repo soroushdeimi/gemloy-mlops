@@ -1,0 +1,21 @@
+image: vllm/vllm-openai:v0.25.0
+model:
+  repository: cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit
+  revision: "5c5db8a7aeabb70b27923ef56536aa5343ecbb5b"
+  servedName: gemma4-summary
+  quantization: compressed-tensors
+  dtype: bfloat16
+  gpuMemoryUtilization: "0.90"
+  maxModelLen: 2048
+  maxNumSeqs: 2
+  maxNumBatchedTokens: 512
+  kvCacheDtype: auto
+hfTokenSecret: hf-token
+storage:
+  size: 50Gi
+  className: local-path
+resources:
+  requests: {cpu: "2", memory: 8Gi, nvidia.com/gpu: 1}
+  limits: {cpu: "4", memory: 16Gi, nvidia.com/gpu: 1}
+serviceMonitor:
+  enabled: true

@@ -1,0 +1,9 @@
+# Two-model MIG design
+
+The RTX 3090 has no MIG capability. This is a future A100/H100 design, not a deployable configuration for the target card. NVIDIA lists supported devices and profile constraints in the [MIG guide](https://docs.nvidia.com/datacenter/tesla/mig-user-guide/supported-gpus.html).
+
+On a MIG-capable multi-GPU node, reserve separate physical GPUs for the large and small model pools when possible; partition one pool for small models and the other for larger models. Select actual MIG profiles only after measuring each checkpoint's weights, KV working set and execution workspace. Fit condition for each slice is weights + KV + workspace < usable slice memory; active parameter count does not determine resident weights. Do not assume all profiles can coexist: GPU generation, memory variant and placement rules determine valid combinations.
+
+Enable GPU Operator MIG Manager and use the mixed device-plugin strategy on the dedicated pool. Label nodes by hardware/profile, taint the pool, and request the exact advertised extended resource such as `nvidia.com/mig-1g.10gb` for a small model that has a verified budget below that profile. A larger model would request an appropriate larger advertised slice. Profile names must come from the installed node's allocatable resources, not copied from another generation. Each pod gets its own cache and model alias; routing maps aliases to distinct Services.
+
+Drain workloads before repartitioning because profile changes disrupt instances. Use declarative MIG configurations and a maintenance window; never repartition an occupied node. Monitor by GPU instance/compute instance identifiers, avoiding aggregation that hides a single saturated slice. Queue-based replica scaling is then bounded by free compatible slices rather than free physical GPUs. MIG isolates resources but does not provide cross-node availability; replicate each model across failure domains if availability is required.

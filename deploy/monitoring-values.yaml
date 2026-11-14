@@ -1,0 +1,31 @@
+grafana:
+  defaultDashboardsEnabled: false
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    size: 5Gi
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    ruleSelectorNilUsesHelmValues: false
+    ruleSelector: {}
+    ruleNamespaceSelector: {}
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests: {storage: 20Gi}
+kubeControllerManager: {enabled: false}
+kubeScheduler: {enabled: false}
+kubeEtcd: {enabled: false}
+kubeProxy: {enabled: false}

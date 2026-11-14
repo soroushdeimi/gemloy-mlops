@@ -1,0 +1,25 @@
+driver:
+  enabled: false
+toolkit:
+  enabled: false
+operator:
+  defaultRuntime: containerd
+devicePlugin:
+  enabled: true
+dcgmExporter:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+gfd:
+  enabled: true
+migManager:
+  enabled: false
+daemonsets:
+  tolerations:
+    - {key: nvidia.com/gpu, operator: Equal, value: present, effect: NoSchedule}
+nfd:
+  enabled: true
+node-feature-discovery:
+  worker:
+    tolerations:
+      - {key: nvidia.com/gpu, operator: Equal, value: present, effect: NoSchedule}
