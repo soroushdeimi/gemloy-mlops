@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   sources:
-  - repoURL: https://github.com/EXAMPLE/gemloy-mlops.git
+  - repoURL: https://github.com/soroushdeimi/gemloy-mlops.git
     targetRevision: main
     path: deploy/charts/vllm
     helm:

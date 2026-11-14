@@ -15,7 +15,7 @@ spec:
       releaseName: nvidia-device-plugin
       valueFiles:
       - $values/deploy/nvidia-device-plugin-values.yaml
-  - repoURL: https://github.com/EXAMPLE/gemloy-mlops.git
+  - repoURL: https://github.com/soroushdeimi/gemloy-mlops.git
     targetRevision: main
     ref: values
   destination:
