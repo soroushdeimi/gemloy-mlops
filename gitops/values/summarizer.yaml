@@ -1,6 +1,6 @@
 image:
   repository: ghcr.io/soroushdeimi/gemloy-mlops/summarizer
-  tag: e153a67ef93cb6ecacbc2caeb0c8b42410a2f97c
+  tag: 0feccd839e5502775756fe845cd5e8841c601bd9
 hpa:
   enabled: true
 maxInputChars: 450000
