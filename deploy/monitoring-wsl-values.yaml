@@ -23,3 +23,13 @@ prometheusOperator:
 kube-state-metrics:
   tolerations:
   - *id001
+prometheus-node-exporter:
+  # WSL2 root is not a shared/slave mount; mounting host "/" fails container creation.
+  hostRootFsMount:
+    enabled: false
+  # WSL mirrored networking shares host ports; 9100 is used by the serving distro's node-exporter.
+  service:
+    port: 9101
+    targetPort: 9101
+  tolerations:
+  - *id001
