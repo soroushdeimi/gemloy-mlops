@@ -1,6 +1,6 @@
 image:
   repository: ghcr.io/soroushdeimi/gemloy-mlops
-  tag: 7df74319156a17f9685918704ee588cf481a7f4b
+  tag: e153a67ef93cb6ecacbc2caeb0c8b42410a2f97c
 hpa:
   enabled: true
 maxInputChars: 450000
