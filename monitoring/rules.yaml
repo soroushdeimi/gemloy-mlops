@@ -7,7 +7,7 @@ spec:
   - name: gemloy.platform
     rules:
     - alert: GPUTemperatureHigh
-      expr: DCGM_FI_DEV_GPU_TEMP > 80
+      expr: (DCGM_FI_DEV_GPU_TEMP or nvidia_smi_temperature_gpu) > 80
       for: 5m
       labels:
         severity: warning
@@ -15,7 +15,7 @@ spec:
         summary: GPU temperature above operating threshold
         runbook_url: docs/runbook.md
     - alert: GPUMemoryNearFull
-      expr: DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE) > 0.95
+      expr: (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE) or nvidia_smi_memory_used_bytes / nvidia_smi_memory_total_bytes) > 0.98
       for: 5m
       labels:
         severity: warning

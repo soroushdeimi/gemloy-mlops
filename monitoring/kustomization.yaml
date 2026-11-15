@@ -1,5 +1,6 @@
 resources:
 - rules.yaml
 - dcgm-servicemonitor.yaml
+- gpu-smi-exporter.yaml
 - gpu-dashboard.yaml
 - model-dashboard.yaml

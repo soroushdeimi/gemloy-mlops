@@ -13,31 +13,35 @@ data:
     : 0,\n        \"y\": 0,\n        \"w\": 12,\n        \"h\": 8\n      },\n    \
     \  \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\
     \n      },\n      \"targets\": [\n        {\n          \"refId\": \"A\",\n   \
-    \       \"expr\": \"DCGM_FI_DEV_GPU_TEMP\",\n          \"legendFormat\": \"{{instance}}\
-    \ {{kind}} {{status}}\"\n        }\n      ],\n      \"fieldConfig\": {\n     \
-    \   \"defaults\": {\n          \"unit\": \"celsius\"\n        },\n        \"overrides\"\
-    : []\n      }\n    },\n    {\n      \"id\": 2,\n      \"title\": \"Framebuffer\
-    \ used (MiB)\",\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n     \
-    \   \"x\": 12,\n        \"y\": 0,\n        \"w\": 12,\n        \"h\": 8\n    \
-    \  },\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"\
-    uid\": \"prometheus\"\n      },\n      \"targets\": [\n        {\n          \"\
-    refId\": \"A\",\n          \"expr\": \"DCGM_FI_DEV_FB_USED\",\n          \"legendFormat\"\
-    : \"{{instance}} {{kind}} {{status}}\"\n        }\n      ],\n      \"fieldConfig\"\
-    : {\n        \"defaults\": {\n          \"unit\": \"none\"\n        },\n     \
-    \   \"overrides\": []\n      }\n    },\n    {\n      \"id\": 3,\n      \"title\"\
-    : \"GPU utilization (%)\",\n      \"type\": \"timeseries\",\n      \"gridPos\"\
-    : {\n        \"x\": 0,\n        \"y\": 8,\n        \"w\": 12,\n        \"h\":\
-    \ 8\n      },\n      \"datasource\": {\n        \"type\": \"prometheus\",\n  \
-    \      \"uid\": \"prometheus\"\n      },\n      \"targets\": [\n        {\n  \
-    \        \"refId\": \"A\",\n          \"expr\": \"DCGM_FI_DEV_GPU_UTIL\",\n  \
+    \       \"expr\": \"DCGM_FI_DEV_GPU_TEMP or nvidia_smi_temperature_gpu\",\n  \
     \        \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n \
     \     ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
-    : \"percent\"\n        },\n        \"overrides\": []\n      }\n    },\n    {\n\
-    \      \"id\": 4,\n      \"title\": \"XID error code\",\n      \"type\": \"timeseries\"\
-    ,\n      \"gridPos\": {\n        \"x\": 12,\n        \"y\": 8,\n        \"w\"\
-    : 12,\n        \"h\": 8\n      },\n      \"datasource\": {\n        \"type\":\
+    : \"celsius\"\n        },\n        \"overrides\": []\n      }\n    },\n    {\n\
+    \      \"id\": 2,\n      \"title\": \"Framebuffer used (MiB)\",\n      \"type\"\
+    : \"timeseries\",\n      \"gridPos\": {\n        \"x\": 12,\n        \"y\": 0,\n\
+    \        \"w\": 12,\n        \"h\": 8\n      },\n      \"datasource\": {\n   \
+    \     \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n \
+    \     \"targets\": [\n        {\n          \"refId\": \"A\",\n          \"expr\"\
+    : \"DCGM_FI_DEV_FB_USED or nvidia_smi_memory_used_bytes / 1048576\",\n       \
+    \   \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n      ],\n\
+    \      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\": \"none\"\
+    \n        },\n        \"overrides\": []\n      }\n    },\n    {\n      \"id\"\
+    : 3,\n      \"title\": \"GPU utilization (%)\",\n      \"type\": \"timeseries\"\
+    ,\n      \"gridPos\": {\n        \"x\": 0,\n        \"y\": 8,\n        \"w\":\
+    \ 12,\n        \"h\": 8\n      },\n      \"datasource\": {\n        \"type\":\
     \ \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"targets\"\
-    : [\n        {\n          \"refId\": \"A\",\n          \"expr\": \"DCGM_FI_DEV_XID_ERRORS\"\
-    ,\n          \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n\
-    \      ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
-    : \"none\"\n        },\n        \"overrides\": []\n      }\n    }\n  ]\n}\n"
+    : [\n        {\n          \"refId\": \"A\",\n          \"expr\": \"DCGM_FI_DEV_GPU_UTIL\
+    \ or nvidia_smi_utilization_gpu_ratio * 100\",\n          \"legendFormat\": \"\
+    {{instance}} {{kind}} {{status}}\"\n        }\n      ],\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"unit\": \"percent\"\n        },\n  \
+    \      \"overrides\": []\n      }\n    },\n    {\n      \"id\": 4,\n      \"title\"\
+    : \"XID error code\",\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n\
+    \        \"x\": 12,\n        \"y\": 8,\n        \"w\": 12,\n        \"h\": 8\n\
+    \      },\n      \"datasource\": {\n        \"type\": \"prometheus\",\n      \
+    \  \"uid\": \"prometheus\"\n      },\n      \"targets\": [\n        {\n      \
+    \    \"refId\": \"A\",\n          \"expr\": \"DCGM_FI_DEV_XID_ERRORS\",\n    \
+    \      \"legendFormat\": \"{{instance}} {{kind}} {{status}}\"\n        }\n   \
+    \   ],\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
+    : \"none\"\n        },\n        \"overrides\": []\n      },\n      \"description\"\
+    : \"DCGM only. nvidia-smi does not expose XID events, so this panel stays empty\
+    \ on WSL2.\"\n    }\n  ]\n}\n"

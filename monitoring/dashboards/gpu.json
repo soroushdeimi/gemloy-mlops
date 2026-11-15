@@ -29,7 +29,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "DCGM_FI_DEV_GPU_TEMP",
+          "expr": "DCGM_FI_DEV_GPU_TEMP or nvidia_smi_temperature_gpu",
           "legendFormat": "{{instance}} {{kind}} {{status}}"
         }
       ],
@@ -57,7 +57,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "DCGM_FI_DEV_FB_USED",
+          "expr": "DCGM_FI_DEV_FB_USED or nvidia_smi_memory_used_bytes / 1048576",
           "legendFormat": "{{instance}} {{kind}} {{status}}"
         }
       ],
@@ -85,7 +85,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "DCGM_FI_DEV_GPU_UTIL",
+          "expr": "DCGM_FI_DEV_GPU_UTIL or nvidia_smi_utilization_gpu_ratio * 100",
           "legendFormat": "{{instance}} {{kind}} {{status}}"
         }
       ],
@@ -122,7 +122,8 @@
           "unit": "none"
         },
         "overrides": []
-      }
+      },
+      "description": "DCGM only. nvidia-smi does not expose XID events, so this panel stays empty on WSL2."
     }
   ]
 }

@@ -1,0 +1,59 @@
+# nvidia-smi based GPU metrics for nodes where DCGM cannot run (WSL2). On a
+# regular Linux GPU node DCGM is the primary source; dashboards and alerts read
+# whichever of the two series exists.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nvidia-smi-exporter
+  labels: {app: nvidia-smi-exporter}
+spec:
+  selector:
+    matchLabels: {app: nvidia-smi-exporter}
+  template:
+    metadata:
+      labels: {app: nvidia-smi-exporter}
+    spec:
+      runtimeClassName: nvidia
+      automountServiceAccountToken: false
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      tolerations:
+        - {key: nvidia.com/gpu, operator: Equal, value: present, effect: NoSchedule}
+      containers:
+        - name: exporter
+          image: utkuozdemir/nvidia_gpu_exporter:1.15.1
+          args: [--web.listen-address=:9835]
+          env:
+            # Read-only access to the GPU through the NVIDIA runtime without
+            # claiming nvidia.com/gpu, so the model keeps the only GPU.
+            - {name: NVIDIA_VISIBLE_DEVICES, value: all}
+            - {name: NVIDIA_DRIVER_CAPABILITIES, value: utility}
+          ports: [{name: metrics, containerPort: 9835}]
+          readinessProbe:
+            httpGet: {path: /metrics, port: metrics}
+            periodSeconds: 30
+            timeoutSeconds: 10
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nvidia-smi-exporter
+  labels: {app: nvidia-smi-exporter}
+spec:
+  selector: {app: nvidia-smi-exporter}
+  ports: [{name: metrics, port: 9835, targetPort: metrics}]
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nvidia-smi-exporter
+spec:
+  selector:
+    matchLabels: {app: nvidia-smi-exporter}
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
