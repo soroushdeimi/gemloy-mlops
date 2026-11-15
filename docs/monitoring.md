@@ -43,7 +43,7 @@ Names checked against the [v0.25.0 metric definitions](https://github.com/vllm-p
 | `vllm:num_requests_waiting` | Waiting queue gauge |
 | `vllm:kv_cache_usage_perc` | Used KV block fraction, bounded from zero to one |
 
-The model dashboard shows throughput, running/waiting, KV fraction and latency percentiles. App panels show request status rates, latency, upstream errors and tokens. GPU panels show temperature, utilization, framebuffer and XID fault code. DCGM field support on this consumer card must be checked: absent metrics do not mean a healthy GPU.
+The model dashboard shows throughput, running/waiting, KV fraction and latency percentiles. App panels show request status rates, latency, upstream errors and tokens. GPU panels show temperature, utilization, framebuffer and XID fault code. Each GPU query reads DCGM when present and otherwise the nvidia-smi exporter (`monitoring/gpu-smi-exporter.yaml`), because DCGM does not run on WSL2. The nvidia-smi exporter reaches the GPU through the NVIDIA runtime without claiming `nvidia.com/gpu`, so the model keeps the only GPU. XID faults come from DCGM only; on WSL2 that panel and the XID alert have no data. Absent metrics do not mean a healthy GPU.
 
 ## Initial policies and calculations
 
@@ -52,7 +52,7 @@ These are proposed operational thresholds, not measured production SLOs. Scrape 
 | Alert | Threshold and reasoning |
 |---|---|
 | GPU temperature high | 80 C for five minutes: initial operator policy, not a vendor maximum; tune to hardware cooling |
-| GPU memory near full | Used / (used + free) > 0.95, leaving less than 24 × 0.05 = 1.2 GiB |
+| GPU memory near full | Used / total > 0.98 for five minutes, leaving less than 24 × 0.02 = 0.48 GiB. Not 0.95: model servers allocate their KV cache at startup, and the test node sat at 23,445 / 24,576 MiB = 0.954 while idle, which would fire permanently |
 | XID fault | Nonzero reported XID code for one minute; a code is a fault indicator, not an event counter, so no counter rate is used |
 | Model down | `up == 0` or absent for two minutes (eight scrape intervals) |
 | Queue high | More than two waiting for five minutes: exceeds one configured batch |
